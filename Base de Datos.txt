@@ -1,0 +1,197 @@
+-- 1. TABLAS PRINCIPALES
+CREATE TABLE empleado (
+    ID_emp NUMBER(10) NOT NULL PRIMARY KEY,
+    appaterno_emp VARCHAR2(30) NOT NULL,
+    nombre_emp VARCHAR2(25) NOT NULL,
+    correo_emp VARCHAR2(25) NOT NULL UNIQUE,
+    pass_emp VARCHAR2(25) NOT NULL,
+    fecha_contratacion DATE DEFAULT SYSDATE,
+    estado VARCHAR2(15) DEFAULT 'ACTIVO'
+);
+
+CREATE TABLE cliente (
+    ID_cliente NUMBER(10) NOT NULL PRIMARY KEY,
+    appaterno_cliente VARCHAR2(30) NOT NULL,
+    nombre_cliente VARCHAR2(25) NOT NULL,
+    correo_cliente VARCHAR2(25) NOT NULL UNIQUE,
+    pass_cliente VARCHAR2(25) NOT NULL,
+    telefono VARCHAR2(15),
+    direccion VARCHAR2(100),
+    fecha_registro DATE DEFAULT SYSDATE
+);
+
+CREATE TABLE admin (
+    ID_admin NUMBER(10) NOT NULL PRIMARY KEY,
+    appaterno_admin VARCHAR2(30) NOT NULL,
+    nombre_admin VARCHAR2(25) NOT NULL,
+    correo_admin VARCHAR2(25) NOT NULL UNIQUE,
+    pass_admin VARCHAR2(25) NOT NULL
+);
+
+CREATE TABLE habitacion (
+    num_habitacion NUMBER(10) NOT NULL PRIMARY KEY,
+    categoria_habitacion VARCHAR2(30) NOT NULL,
+    caract_habitacion VARCHAR2(100) NOT NULL,
+    equip_habitacion VARCHAR2(100) NOT NULL,
+    precio_habitacion NUMBER(10,2) NOT NULL,
+    estado_habitacion VARCHAR2(20) DEFAULT 'DISPONIBLE',
+    capacidad NUMBER(2) NOT NULL
+);
+
+-- 2. TABLAS SECUNDARIAS (Ya definidas arriba)
+CREATE TABLE huesped (
+    ID_huesped NUMBER(10) NOT NULL PRIMARY KEY,
+    ID_cliente NUMBER(10) NOT NULL,
+    nombre_huesped VARCHAR2(50) NOT NULL,
+    apellido_huesped VARCHAR2(50) NOT NULL,
+    tipo_documento VARCHAR2(20) NOT NULL,
+    num_documento VARCHAR2(20) NOT NULL UNIQUE,
+    fecha_nacimiento DATE,
+    telefono VARCHAR2(15),
+    CONSTRAINT fk_huesped_cliente FOREIGN KEY (ID_cliente) REFERENCES cliente(ID_cliente)
+);
+
+CREATE TABLE reserva (
+    id_reserva NUMBER(10) NOT NULL PRIMARY KEY,
+    ID_cliente NUMBER(10) NOT NULL,
+    ID_emp NUMBER(10),
+    num_habitacion NUMBER(10) NOT NULL,
+    fecha_inicio DATE NOT NULL,
+    fecha_fin DATE NOT NULL,
+    estado_reserva VARCHAR2(30) DEFAULT 'PENDIENTE',
+    monto_total NUMBER(10,2) NOT NULL,
+    fecha_reserva DATE DEFAULT SYSDATE,
+    CONSTRAINT fk_reserva_cliente FOREIGN KEY (ID_cliente) REFERENCES cliente(ID_cliente),
+    CONSTRAINT fk_reserva_empleado FOREIGN KEY (ID_emp) REFERENCES empleado(ID_emp),
+    CONSTRAINT fk_reserva_habitacion FOREIGN KEY (num_habitacion) REFERENCES habitacion(num_habitacion)
+);
+
+CREATE TABLE pago (
+    id_pago NUMBER(10) NOT NULL PRIMARY KEY,
+    id_reserva NUMBER(10) NOT NULL,
+    monto_pago NUMBER(10,2) NOT NULL,
+    metodo_pago VARCHAR2(25) NOT NULL,
+    fecha_pago DATE DEFAULT SYSDATE,
+    estado_pago VARCHAR2(20) DEFAULT 'PENDIENTE',
+    CONSTRAINT fk_pago_reserva FOREIGN KEY (id_reserva) REFERENCES reserva(id_reserva)
+);
+
+CREATE TABLE detalle_reserva_huesped (
+    id_detalle NUMBER(10) NOT NULL PRIMARY KEY,
+    id_reserva NUMBER(10) NOT NULL,
+    ID_huesped NUMBER(10) NOT NULL,
+    CONSTRAINT fk_detalle_reserva FOREIGN KEY (id_reserva) REFERENCES reserva(id_reserva),
+    CONSTRAINT fk_detalle_huesped FOREIGN KEY (ID_huesped) REFERENCES huesped(ID_huesped)
+);
+
+-- 3. INSERCIONES DE EJEMPLO
+-- Insertar empleados
+INSERT INTO empleado (ID_emp, appaterno_emp, nombre_emp, correo_emp, pass_emp) VALUES 
+(1, 'Gonzalez', 'Maria', 'mgonzalez@hotel.com', 'pass123'),
+(2, 'Lopez', 'Carlos', 'clopez@hotel.com', 'pass456');
+
+-- Insertar clientes
+INSERT INTO cliente (ID_cliente, appaterno_cliente, nombre_cliente, correo_cliente, pass_cliente, telefono) VALUES 
+(1, 'Perez', 'Juan', 'jperez@gmail.com', 'cliente123', '555-1234'),
+(2, 'Rodriguez', 'Ana', 'arodriguez@yahoo.com', 'cliente456', '555-5678');
+
+-- Insertar habitaciones
+INSERT INTO habitacion (num_habitacion, categoria_habitacion, caract_habitacion, equip_habitacion, precio_habitacion, capacidad) VALUES 
+(101, 'Standard', 'Vista al jardín, 25m²', 'TV, WiFi, Baño privado', 150.00, 2),
+(102, 'Suite', 'Vista al mar, 45m²', 'TV, WiFi, Jacuzzi, Mini-bar', 300.00, 3),
+(201, 'Familiar', 'Vista a la piscina, 35m²', 'TV, WiFi, 2 camas dobles', 220.00, 4);
+
+-- Insertar huéspedes
+INSERT INTO huesped (ID_huesped, ID_cliente, nombre_huesped, apellido_huesped, tipo_documento, num_documento) VALUES 
+(1, 1, 'Juan', 'Perez', 'DNI', '12345678'),
+(2, 1, 'Laura', 'Perez', 'DNI', '87654321'),
+(3, 2, 'Ana', 'Rodriguez', 'PASAPORTE', 'AB123456');
+
+-- Insertar reservas
+INSERT INTO reserva (id_reserva, ID_cliente, ID_emp, num_habitacion, fecha_inicio, fecha_fin, monto_total) VALUES 
+(1, 1, 1, 101, DATE '2024-01-15', DATE '2024-01-20', 750.00),
+(2, 2, 2, 102, DATE '2024-02-01', DATE '2024-02-05', 1200.00);
+
+-- Insertar detalles de huéspedes en reservas
+INSERT INTO detalle_reserva_huesped (id_detalle, id_reserva, ID_huesped) VALUES 
+(1, 1, 1),
+(2, 1, 2),
+(3, 2, 3);
+
+-- Insertar pagos
+INSERT INTO pago (id_pago, id_reserva, monto_pago, metodo_pago, estado_pago) VALUES 
+(1, 1, 750.00, 'TARJETA_CREDITO', 'COMPLETADO'),
+(2, 2, 600.00, 'EFECTIVO', 'PENDIENTE');
+
+-- 4. CONSULTAS ÚTILES
+-- Consulta para ver reservas con información completa
+SELECT 
+    r.id_reserva,
+    c.nombre_cliente || ' ' || c.appaterno_cliente as cliente,
+    h.num_habitacion,
+    h.categoria_habitacion,
+    r.fecha_inicio,
+    r.fecha_fin,
+    r.monto_total,
+    r.estado_reserva
+FROM reserva r
+JOIN cliente c ON r.ID_cliente = c.ID_cliente
+JOIN habitacion h ON r.num_habitacion = h.num_habitacion;
+
+-- Consulta para ver huéspedes por reserva
+SELECT 
+    r.id_reserva,
+    hs.nombre_huesped || ' ' || hs.apellido_huesped as huesped,
+    hs.tipo_documento,
+    hs.num_documento
+FROM reserva r
+JOIN detalle_reserva_huesped drh ON r.id_reserva = drh.id_reserva
+JOIN huesped hs ON drh.ID_huesped = hs.ID_huesped;
+
+-- Consulta de habitaciones disponibles
+SELECT 
+    num_habitacion,
+    categoria_habitacion,
+    precio_habitacion,
+    capacidad
+FROM habitacion 
+WHERE estado_habitacion = 'DISPONIBLE';
+
+-- 5. VISTAS ÚTILES
+CREATE VIEW vista_reservas_completas AS
+SELECT 
+    r.id_reserva,
+    c.nombre_cliente || ' ' || c.appaterno_cliente as cliente_completo,
+    h.num_habitacion,
+    h.categoria_habitacion,
+    r.fecha_inicio,
+    r.fecha_fin,
+    r.monto_total,
+    r.estado_reserva,
+    (SELECT COUNT(*) FROM detalle_reserva_huesped WHERE id_reserva = r.id_reserva) as cantidad_huespedes
+FROM reserva r
+JOIN cliente c ON r.ID_cliente = c.ID_cliente
+JOIN habitacion h ON r.num_habitacion = h.num_habitacion;
+
+-- 6. PROCEDIMIENTO ALMACENADO PARA HACER UNA RESERVA
+CREATE OR REPLACE PROCEDURE hacer_reserva (
+    p_id_reserva IN NUMBER,
+    p_id_cliente IN NUMBER,
+    p_num_habitacion IN NUMBER,
+    p_fecha_inicio IN DATE,
+    p_fecha_fin IN DATE
+) AS
+    v_precio_habitacion NUMBER;
+    v_dias NUMBER;
+BEGIN
+    -- Calcular días de estadía
+    v_dias := p_fecha_fin - p_fecha_inicio;
+    
+    -- Obtener precio de la habitación
+    SELECT precio_habitacion INTO v_precio_habitacion 
+    FROM habitacion 
+    WHERE num_habitacion = p_num_habitacion;
+    
+    -- Insertar reserva
+    INSERT INTO reserva (id_reserva, ID_cliente, num_habitacion, fecha_inicio, fecha_fin, monto_total)
+    VALUES (p_id_reserva, p_id_cliente, p_num_habitacion, p_f
